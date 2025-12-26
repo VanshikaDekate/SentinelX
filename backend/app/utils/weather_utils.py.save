@@ -1,0 +1,36 @@
+import os
+import requests
+from typing import Dict, Any
+
+OPENWEATHER_API_KEY = "83a3abc5014e2019b9e50e4aedb9c91a"
+
+def get_current_weather(lat: float, lon: float, api_key: str) -> Dict[str, Any]:
+    url = f"https://api.openweathermap.org/data/2.5/weather"
+    params = {
+        "lat": lat,
+        "lon": lon,
+        "appid": api_key,
+        "units": "metric"
+    }
+    
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException:
+        return {}
+
+def preprocess_weather_data(raw: Dict[str, Any]) -> Dict[str, float]:
+    if not raw or "main" not in raw:
+        raise ValueError("Invalid weather data")
+    
+    return {
+        "temp": float(raw["main"]["temp"]),
+        "humidity": float(raw["main"]["humidity"])
+    }
+/Users/vanshikavivekdekate/SentinelX/.venv/bin/python /Users/vanshikavivekdekate/SentinelX/backend/app/utils/preprocess.py
+lsof -ti:8000 | xargs kill -9
+uvicorn app.main:app --reload
+
+/Users/vanshikavivekdekate/SentinelX/.venv/bin/python /Users/vanshikavivekdekate/SentinelX/backend/app/utils/preprocess.py
+
