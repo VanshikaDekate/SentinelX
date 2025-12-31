@@ -175,3 +175,46 @@ async def india_weather(city: str):
         }
     return imd
 
+
+# 🔐 JWT USER AUTH (Production Secure)
+import jwt
+import hashlib
+from datetime import datetime, timedelta
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+SECRET_KEY = "sentinelx-super-secret-2025-change-this-in-prod"
+ALGORITHM = "HS256"
+security = HTTPBearer()
+
+# In-memory users (Production: SQLite table)
+users_db = {
+    "admin": hashlib.sha256("sentinelx123".encode()).hexdigest(),  # Password: sentinelx123
+    "user": hashlib.sha256("password".encode()).hexdigest()       # Password: password
+}
+
+@app.post("/api/auth/login")
+async def login(username: str, password: str):
+    if username in users_db and users_db[username] == hashlib.sha256(password.encode()).hexdigest():
+        token = jwt.encode({
+            "sub": username, 
+            "exp": datetime.utcnow() + timedelta(hours=24)
+        }, SECRET_KEY, algorithm=ALGORITHM)
+        return {"access_token": token, "token_type": "bearer"}
+    raise HTTPException(status_code=401, detail="Invalid credentials")
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        username = payload.get("sub")
+        if username not in users_db:
+            raise HTTPException(status_code=401, detail="Invalid user")
+        return username
+    except:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+# PROTECTED ROUTES (Add @app.get("/api/protected") etc)
+@app.get("/api/protected", dependencies=[Depends(get_current_user)])
+async def protected_route(current_user: str = Depends(get_current_user)):
+    return {"message": f"Hello {current_user}! Secure data here"}
+
